@@ -1,8 +1,3 @@
-// encode UTF-8
-
-// @Author        : Aged_cat
-// @Date          : 2021-05-04
-
 #ifndef HTTP_CONNECTION_H
 #define HTTP_CONNECTION_H
 
@@ -13,7 +8,7 @@
 #include<assert.h>
 
 #include "buffer.h"
-// #include "HTTPrequest.h"
+#include "HTTPrequest.h"
 // #include "HTTPresponse.h"
 
 class HttpConnection{
@@ -21,11 +16,11 @@ public:
     HttpConnection();
     ~HttpConnection();
 
-    void initHttpConn(int socketFd,const sockaddr_in& addr);
+    void initHttpConn(int socketFd,const sockaddr_in& addr_);
 
     //每个连接中定义的对缓冲区的读写接口
-    ssize_t readBuffer(int* saveErrno);
-    ssize_t writeBuffer(int* saveErrno);
+    ssize_t read(int* saveErrno);
+    ssize_t write(int* saveErrno);
 
     //关闭HTTP连接的接口
     void closeHttpConn();
@@ -39,30 +34,30 @@ public:
     sockaddr_in getAddr() const;
 
     int writeBytes(){
-        return iov_[0].iov_len+iov_[1].iov_len;
+        return iov[0].iov_len+iov[1].iov_len;
     }
 
-    // bool isKeepAlive() const
-    // {
-    //     return request_.isKeepAlive();
-    // }
+    bool isKeepAlive() const
+    {
+        return request.isKeepAlive();
+    }
 
     static bool isET;
-    static const char* srcDir;
+    static std::string srcDir;
     static std::atomic<int>userCount;
 
 private:
-    int fd_;                  //HTTP连接对应的描述符
-    struct sockaddr_in addr_;
-    bool isClose_;            //标记是否关闭连接
+    int fd;                  //HTTP连接对应的描述符
+    struct sockaddr_in addr;
+    bool isClose;            //标记是否关闭连接
 
     int iovCnt_;
-    struct iovec iov_[2];
+    struct iovec iov[2];
 
-    Buffer readBuffer_;       //读缓冲区
-    Buffer writeBuffer_;      //写缓冲区
+    Buffer readBuffer;       //读缓冲区
+    Buffer writeBuffer;      //写缓冲区
 
-    // HTTPrequest request_;    
+    HttpRequest request;    
     // HTTPresponse response_;
 
 };

@@ -15,86 +15,98 @@
 #include <sys/_types/_ssize_t.h>
 #include <sys/uio.h>
 
-const char* HttpConnection::srcDir;
+const std::string HttpConnection::srcDir;
 std::atomic<int> HttpConnection::userCount;
 bool HttpConnection::isET;
 
 HttpConnection::HttpConnection(){
-    fd_ = -1;
-    addr_ = {0};
-    isClose_ = true;
+    fd = -1;
+    addr = {0};
+    isClose = true;
 }
 
 HttpConnection::~HttpConnection(){
     closeHttpConn();
 }
 
-void HttpConnection::initHttpConn(int socketFd, const sockaddr_in &addr){
+void HttpConnection::initHttpConn(int socketFd, const sockaddr_in &addr_){
     assert(socketFd > 0);
     userCount ++;
-    addr_ = addr;
-    fd_ = socketFd;
-    writeBuffer_.initPtr();
-    readBuffer_.initPtr();
-    isClose_ = false;
+    addr = addr_;
+    fd = socketFd;
+    writeBuffer.initPtr();
+    readBuffer.initPtr();
+    isClose = false;
 }
 
 void HttpConnection::closeHttpConn(){
-    if(isClose_ == false){
-        isClose_ = true;
+    if(isClose == false){
+        isClose = true;
         userCount --;
-        close(fd_);
+        close(fd);
     }
 }
 
 int HttpConnection::getFd() const{
-    return fd_;
+    return fd;
 }
 
 struct sockaddr_in HttpConnection::getAddr() const{
-    return addr_;
+    return addr;
 }
 
 const char* HttpConnection::getIP() const{
-    return inet_ntoa(addr_.sin_addr);
+    return inet_ntoa(addr.sin_addr);
 }
 
 int HttpConnection::getPort() const{
-    return addr_.sin_port;
+    return addr.sin_port;
 }
 
-ssize_t HttpConnection::readBuffer(int *saveErrno){
+ssize_t HttpConnection::read(int *saveErrno){
     ssize_t len = -1;
     do{
-        len = readBuffer_.readFd(fd_, saveErrno);
+        len = readBuffer.readFd(fd, saveErrno);
         if(len <= 0) break;
     }while(isET);
     return len;
 }
 
-ssize_t HttpConnection::writeBuffer(int *saveErrno){
+ssize_t HttpConnection::write(int *saveErrno){
     ssize_t len = -1;
     do{
-        len = writev(fd_, iov_, iovCnt_);
+        len = writev(fd, iov, iovCnt_);
         if(len <= 0){
             *saveErrno = errno;
             break;
         }
-        if(iov_[0].iov_len + iov_[1].iov_len == 0) break;
-        else if(static_cast<size_t> (len) > iov_[0].iov_len){
-            iov_[1].iov_base = (uint8_t*)iov_[1].iov_base + (len - iov_[0].iov_len);
-            iov_[1].iov_len -= (len - iov_[0].iov_len);
-            if(iov_[0].iov_len){
-                writeBuffer_.initPtr();
-                iov_[0].iov_len = 0;
+        if(iov[0].iov_len + iov[1].iov_len == 0) break;
+        else if(static_cast<size_t> (len) > iov[0].iov_len){
+            iov[1].iov_base = (uint8_t*)iov[1].iov_base + (len - iov[0].iov_len);
+            iov[1].iov_len -= (len - iov[0].iov_len);
+            if(iov[0].iov_len){
+                writeBuffer.initPtr();
+                iov[0].iov_len = 0;
             }
         }else{
-            iov_[0].iov_base = (uint8_t*)iov_[0].iov_base + len;
-            iov_[0].iov_len -= len;
-            writeBuffer_.updateReadPtr(len);
+            iov[0].iov_base = (uint8_t*)iov[0].iov_base + len;
+            iov[0].iov_len -= len;
+            writeBuffer.updateReadPtr(len);
         }
     }while(isET || writeBytes() > 10240);
     return len;
+}
+
+bool HttpConnection::handleHttpConn(){
+    request.init();
+    if(readBuffer.readableBytes() <= 0) return false;
+    // else if(request.parse(readBuffer))  res
+    else{
+        std::cout << "400!" << std::endl;
+        // response
+    }
+
+
 }
 
 
